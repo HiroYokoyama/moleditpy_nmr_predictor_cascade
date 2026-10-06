@@ -216,6 +216,48 @@ def test_annotate_predictions_never_raises():
     assert items[0]["mult"] == "" and items[0]["pattern"] == []
 
 
+def test_module_version_is_semver():
+    import re
+
+    assert re.fullmatch(r"\d+\.\d+\.\d+", coupling.COUPLING_MODULE_VERSION)
+
+
+def test_lorentzian_peak_height_and_width():
+    # one line at 2.0 ppm, FWHM 4 Hz at 400 MHz -> half width 0.005 ppm
+    x, y = coupling.lorentzian_curve([(2.0, 3.0)], 4.0, 400.0, 0.0, 4.0)
+    assert x == sorted(x) and len(x) == len(y)
+    peak = max(range(len(y)), key=y.__getitem__)
+    assert x[peak] == pytest.approx(2.0, abs=1e-9)
+    assert y[peak] == pytest.approx(3.0)
+    half = [xi for xi, yi in zip(x, y) if yi >= 1.5 - 1e-9]
+    assert max(half) - min(half) == pytest.approx(0.01, abs=1e-6)  # FWHM in ppm
+
+
+def test_lorentzian_overlapping_lines_add():
+    x, y = coupling.lorentzian_curve([(1.0, 1.0), (1.0, 1.0)], 1.0, 400.0, 0.0, 2.0)
+    assert max(y) == pytest.approx(2.0)
+
+
+def test_lorentzian_resolves_a_multiplet():
+    """A 7 Hz triplet at 400 MHz with 1 Hz lines shows three maxima."""
+    items = [{"ppm": 1.2, "pattern": [(7.0, 2)]}]
+    sticks = coupling.spectrum_sticks(items, 400.0)
+    x, y = coupling.lorentzian_curve(sticks, 1.0, 400.0, 1.1, 1.3)
+    maxima = [i for i in range(1, len(y) - 1) if y[i - 1] < y[i] >= y[i + 1]]
+    assert len(maxima) == 3
+    assert [round(y[i], 2) for i in maxima] == [0.25, 0.5, 0.25]
+
+
+def test_lorentzian_narrow_line_on_a_wide_range():
+    """A 2 Hz 13C line must keep its height on a 230 ppm axis."""
+    x, y = coupling.lorentzian_curve([(77.0, 1.0)], 2.0, 100.0, -10.0, 220.0)
+    assert max(y) == pytest.approx(1.0, abs=1e-6)
+
+
+def test_lorentzian_empty_range():
+    assert coupling.lorentzian_curve([(1.0, 1.0)], 1.0, 400.0, 2.0, 2.0) == ([], [])
+
+
 def test_spectrum_sticks():
     items = [
         {"ppm": 1.2, "pattern": [(7.0, 2)]},

@@ -35,6 +35,8 @@ annotate_predictions(mol_h, items, nucleus)
     every prediction dict in ``items`` (and "dept", "j_ch" for 13C).
 spectrum_sticks(items, spectrometer_mhz, show_multiplets)
     Stick positions/heights for plotting, with or without the splitting.
+lorentzian_curve(sticks, linewidth_hz, spectrometer_mhz, ppm_min, ppm_max)
+    The sticks broadened into a continuous spectrum (x, y lists).
 predict_hh_couplings(mol_h) / hh_multiplets(mol_h, couplings)
 predict_ch_couplings(mol_h)
 multiplet_lines(center_ppm, pattern, spectrometer_mhz)
@@ -82,9 +84,18 @@ Hz. On sp3 carbons each heteroatom substituent adds Malinowski's increment
 
 from __future__ import annotations
 
+import bisect
 import math
 
-COUPLING_MODULE_VERSION = "1.0.0"
+#: Version of this shared module (semver). Bump it on every change and copy
+#: the file to the other plugin; both About dialogs show it, so a mismatch
+#: between the two plugins is visible at a glance.
+#: 1.0.0  couplings, multiplets, 1J(CH)
+#: 1.1.0  lorentzian_curve() for line broadening
+COUPLING_MODULE_VERSION = "1.1.0"
+
+#: Default full width at half maximum (Hz) for line broadening.
+DEFAULT_LINEWIDTH_HZ = {"1H": 1.0, "13C": 2.0}
 
 # ---------------------------------------------------------------------------
 # Constants (Hz). Typical values from the Pretsch / Silverstein tables.
@@ -185,6 +196,45 @@ def spectrum_sticks(items, spectrometer_mhz, show_multiplets=True):
             key = round(ppm, 5)
             sticks[key] = sticks.get(key, 0.0) + height
     return sorted(sticks.items())
+
+
+def lorentzian_curve(sticks, linewidth_hz, spectrometer_mhz, ppm_min, ppm_max, grid_points=2000):
+    """Broaden ``spectrum_sticks`` output into a continuous spectrum.
+
+    Every stick becomes a Lorentzian line of full width at half maximum
+    ``linewidth_hz`` whose peak height equals the stick height, so a lone
+    line keeps its height and overlapping lines add up. ``spectrometer_mhz``
+    is the observe frequency (it converts Hz to ppm).
+
+    Returns ``(x, y)`` lists sorted by ppm over ``[ppm_min, ppm_max]``. The
+    x grid is a uniform grid plus extra points around each line, so a 1 Hz
+    line is drawn correctly even across a 220 ppm 13C range.
+    """
+    lo, hi = min(ppm_min, ppm_max), max(ppm_min, ppm_max)
+    if hi <= lo:
+        return [], []
+    mhz = float(spectrometer_mhz) if spectrometer_mhz else 400.0
+    hwhm = max(float(linewidth_hz), 0.01) / 2.0 / mhz  # half width, in ppm
+
+    xs = {lo + (hi - lo) * i / (grid_points - 1) for i in range(grid_points)}
+    for center, _height in sticks:
+        if lo - 20 * hwhm <= center <= hi + 20 * hwhm:
+            for k in range(-40, 41):  # dense sampling across +-20 half widths
+                x = center + k * hwhm / 2.0
+                if lo <= x <= hi:
+                    xs.add(x)
+    x_sorted = sorted(xs)
+    y = [0.0] * len(x_sorted)
+    # Each line only within +-TAIL half widths, where its tail has fallen
+    # below 0.04 % of its height; this keeps redraws fast for many lines.
+    tail = 50.0 * hwhm
+    for center, height in sticks:
+        start = bisect.bisect_left(x_sorted, center - tail)
+        stop = bisect.bisect_right(x_sorted, center + tail)
+        for i in range(start, stop):
+            d = (x_sorted[i] - center) / hwhm
+            y[i] += height / (1.0 + d * d)
+    return x_sorted, y
 
 
 # ===========================================================================
