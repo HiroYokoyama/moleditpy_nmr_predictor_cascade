@@ -135,10 +135,28 @@ class ResultDialog(QDialog):
         mult_row.addWidget(self.mhz_spin)
         mult_row.addStretch()
 
+        broad_row = QHBoxLayout()
+        self.broadening_chk = QCheckBox("Line broadening")
+        self.broadening_chk.setChecked(bool(self.settings.get("broadening", True)))
+        self.broadening_chk.setToolTip("Draw Lorentzian lines instead of sticks.")
+        self.broadening_chk.toggled.connect(self._on_broadening_toggled)
+        broad_row.addWidget(self.broadening_chk)
+        broad_row.addWidget(QLabel("Line width:"))
+        self.linewidth_spin = QDoubleSpinBox()
+        self.linewidth_spin.setRange(0.1, 50.0)
+        self.linewidth_spin.setDecimals(1)
+        self.linewidth_spin.setSingleStep(0.5)
+        self.linewidth_spin.setSuffix(" Hz")
+        self.linewidth_spin.setValue(coupling.DEFAULT_LINEWIDTH_HZ.get(self.nucleus, 1.0))
+        self.linewidth_spin.valueChanged.connect(self.plot_spectrum)
+        broad_row.addWidget(self.linewidth_spin)
+        broad_row.addStretch()
+
         layout.addWidget(self.toolbar)
         layout.addWidget(title)
         layout.addLayout(range_row)
         layout.addLayout(mult_row)
+        layout.addLayout(broad_row)
         layout.addWidget(self.canvas)
 
         # -- table ---------------------------------------------------------
@@ -225,6 +243,29 @@ class ResultDialog(QDialog):
         self.settings["show_multiplets"] = bool(checked)
         self.plot_spectrum()
 
+    def _on_broadening_toggled(self, checked):
+        self.settings["broadening"] = bool(checked)
+        self.linewidth_spin.setEnabled(bool(checked))
+        self.plot_spectrum()
+
+    def x_range(self):
+        """(left, right) of the axis: high ppm on the left, as in NMR."""
+        if self.auto_scale_chk.isChecked():
+            shifts = [item["ppm"] for item in self.data]
+            return max(shifts) + 1.0, min(shifts) - 1.0
+        return self.max_ppm_spin.value(), self.min_ppm_spin.value()
+
+    def curve(self):
+        """Broadened spectrum ``(x, y)`` over the current axis range."""
+        left, right = self.x_range()
+        return coupling.lorentzian_curve(
+            self.sticks(),
+            self.linewidth_spin.value(),
+            observe_mhz(self.mhz_spin.value(), self.nucleus),
+            right,
+            left,
+        )
+
     def sticks(self):
         mhz = observe_mhz(self.mhz_spin.value(), self.nucleus)
         return coupling.spectrum_sticks(self.data, mhz, self.multiplet_chk.isChecked())
@@ -243,18 +284,20 @@ class ResultDialog(QDialog):
             self.canvas.draw()
             return
 
-        sticks = self.sticks()
-        positions = [p for p, _h in sticks]
-        heights = [h for _p, h in sticks]
-        ax.vlines(positions, 0, heights, colors="b", linewidth=1.2)
+        x_values, y_values = [], []
+        if self.broadening_chk.isChecked():
+            x_values, y_values = self.curve()
+        if x_values:
+            ax.plot(x_values, y_values, color="b", linewidth=1.0)
+            top = max(y_values)
+        else:  # sticks, or no line inside the axis range
+            sticks = self.sticks()
+            heights = [h for _p, h in sticks]
+            ax.vlines([p for p, _h in sticks], 0, heights, colors="b", linewidth=1.2)
+            top = max(heights)
         ax.axhline(0, color="k", alpha=0.3, linewidth=1)
-        ax.set_ylim(0, max(heights) * 1.2)
-
-        shifts = [item["ppm"] for item in self.data]
-        if self.auto_scale_chk.isChecked():
-            ax.set_xlim(max(shifts) + 1.0, min(shifts) - 1.0)
-        else:
-            ax.set_xlim(self.max_ppm_spin.value(), self.min_ppm_spin.value())
+        ax.set_ylim(0, (top or 1.0) * 1.2)
+        ax.set_xlim(*self.x_range())
 
         ax.set_xlabel("Chemical Shift (ppm)")
         ax.set_ylabel("Intensity")
@@ -509,7 +552,8 @@ class ResultDialog(QDialog):
         Paton, R. S. <i>Chem. Sci.</i> <b>2021</b>, 12, 12012-12026.</p>
         <p><b>Couplings</b> (multiplicity, J) are rule-based estimates made by this
         plugin from typical values and a Karplus curve; they are not part of CASCADE.</p>
-        <p>Author: {PLUGIN_AUTHOR}<br>Version: {PLUGIN_VERSION}</p>
+        <p>Author: {PLUGIN_AUTHOR}<br>Version: {PLUGIN_VERSION}<br>
+        Shared coupling module: {coupling.COUPLING_MODULE_VERSION}</p>
         """
         box = QMessageBox(self)
         box.setWindowTitle("About NMR Predictor (CASCADE)")

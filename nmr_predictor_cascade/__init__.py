@@ -14,7 +14,7 @@ import os
 # --------------------------------------------------------------------------
 
 PLUGIN_NAME = "NMR Predictor (CASCADE)"
-PLUGIN_VERSION = "0.1.0"
+PLUGIN_VERSION = "0.2.0"
 PLUGIN_AUTHOR = "HiroYokoyama"
 PLUGIN_DESCRIPTION = (
     "Predict 1H and 13C NMR shifts with CASCADE, with estimated J couplings and "
@@ -41,6 +41,7 @@ def get_default_settings():
         "nucleus": "1H",
         "spectrometer_mhz": 400.0,  # 1H frequency; 13C uses a quarter of it
         "show_multiplets": True,
+        "broadening": True,  # Lorentzian lines instead of sticks
         "symmetrize": True,
         "server": DEFAULT_SERVER,
     }

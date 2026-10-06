@@ -140,6 +140,50 @@ def test_spectrometer_frequency_narrows_the_multiplet(make_dialog):
     assert width(dlg.sticks()) == pytest.approx(at_400 / 2)
 
 
+def test_broadening_is_on_by_default(make_dialog):
+    dlg, _ = make_dialog("1H")
+    assert dlg.broadening_chk.isChecked()
+    assert dlg.linewidth_spin.value() == 1.0
+    lines = dlg.figure.axes[0].get_lines()
+    assert any(len(line.get_xdata()) > 100 for line in lines)  # a curve, not sticks
+    dlg13, _ = make_dialog("13C")
+    assert dlg13.linewidth_spin.value() == 2.0
+
+
+def test_broadened_curve_follows_the_axis_range(make_dialog):
+    dlg, _ = make_dialog("1H")
+    x, y = dlg.curve()
+    assert min(x) == pytest.approx(-1.0) and max(x) == pytest.approx(12.0)
+    assert max(y) == pytest.approx(1.5, abs=0.01)  # centre line of the CH3 triplet: 3 x 0.5
+
+
+def test_broadening_can_be_switched_off(make_dialog):
+    dlg, _ = make_dialog("1H")
+    dlg.broadening_chk.setChecked(False)
+    assert dlg.settings["broadening"] is False
+    assert not dlg.linewidth_spin.isEnabled()
+    ax = dlg.figure.axes[0]
+    assert not any(len(line.get_xdata()) > 100 for line in ax.get_lines())
+    assert ax.collections  # the vlines
+
+
+def test_broadening_off_from_settings(make_dialog):
+    dlg, _ = make_dialog("1H", {"broadening": False, "spectrometer_mhz": 400.0})
+    assert not dlg.broadening_chk.isChecked()
+
+
+def test_about_shows_the_shared_module_version(make_dialog, monkeypatch):
+    shown = {}
+
+    def fake_exec(box):
+        shown["text"] = box.text()
+
+    monkeypatch.setattr(rd.QMessageBox, "exec", fake_exec)
+    dlg, _ = make_dialog("1H")
+    dlg.show_about()
+    assert f"Shared coupling module: {coupling.COUPLING_MODULE_VERSION}" in shown["text"]
+
+
 def test_highlight_adds_and_clears_actors(make_dialog):
     dlg, ctx = make_dialog("1H")
     dlg.highlight_atom(0, persistent=True)
