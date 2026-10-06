@@ -387,7 +387,8 @@ class ResultDialog(QDialog):
 
             # A hydrogen index can sit past the end of a host molecule that
             # keeps its H implicit; fall back to the heavy atom it hangs off.
-            targets = []
+            # Equivalent protons of one CH2/CH3 then share a carbon: draw it once.
+            targets = {}
             for item in matching:
                 idx = item["idx"] if item["idx"] < n_atoms else item.get("parent_idx", item["idx"])
                 if idx >= n_atoms:
@@ -395,7 +396,8 @@ class ResultDialog(QDialog):
                         "Structure changed since prediction - re-run the prediction."
                     )
                     return
-                targets.append((idx, item))
+                targets.setdefault(idx, item)
+            targets = list(targets.items())
 
             color = "red" if persistent else "orange"
             for atom_idx, item in targets:
