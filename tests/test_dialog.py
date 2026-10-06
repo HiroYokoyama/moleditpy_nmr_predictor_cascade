@@ -157,6 +157,14 @@ def test_broadened_curve_follows_the_axis_range(make_dialog):
     assert max(y) == pytest.approx(1.5, abs=0.01)  # centre line of the CH3 triplet: 3 x 0.5
 
 
+@pytest.mark.parametrize("nucleus, margin", [("1H", 1.0), ("13C", 10.0)])
+def test_auto_fit_leaves_room_beside_the_end_peaks(make_dialog, nucleus, margin):
+    dlg, _ = make_dialog(nucleus)
+    dlg.auto_scale_chk.setChecked(True)
+    shifts = [item["ppm"] for item in dlg.data]
+    assert dlg.x_range() == (pytest.approx(max(shifts) + margin), pytest.approx(min(shifts) - margin))
+
+
 def test_broadening_can_be_switched_off(make_dialog):
     dlg, _ = make_dialog("1H")
     dlg.broadening_chk.setChecked(False)
