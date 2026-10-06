@@ -323,8 +323,8 @@ def build_result(files: dict, mol_h, nucleus: str, symmetrize_shifts: bool = Tru
 
     Every ``data`` item has ``idx`` (index in ``mol_h``), ``parent_idx`` (the
     heavy atom, for highlighting a hydrogen the host keeps implicit),
-    ``atom``, ``ppm``, ``confidence`` and the coupling fields ``mult``,
-    ``pattern``, ``j_text`` (plus ``dept``/``j_ch`` for 13C).
+    ``atom``, ``ppm``, ``confidence`` and the fields added by
+    ``coupling.annotate_predictions``.
     """
     from . import coupling
 
@@ -339,36 +339,24 @@ def build_result(files: dict, mol_h, nucleus: str, symmetrize_shifts: bool = Tru
         shifts[host_idx] = ppm
         confidence[host_idx] = conf
 
-    classes = coupling.symmetry_classes(mol_h)
     if symmetrize_shifts:
-        shifts = symmetrize(shifts, classes)
-
-    if nucleus == "1H":
-        geom = coupling.ensure_3d(mol_h)
-        multiplets = coupling.hh_multiplets(geom, coupling.predict_hh_couplings(geom))
-    else:
-        multiplets = coupling.predict_ch_couplings(mol_h)
+        shifts = symmetrize(shifts, coupling.symmetry_classes(mol_h))
 
     data = []
     for idx in sorted(shifts):
         atom = mol_h.GetAtomWithIdx(idx)
         nbrs = atom.GetNeighbors()
         parent = nbrs[0].GetIdx() if atom.GetAtomicNum() == 1 and nbrs else idx
-        info = multiplets.get(idx, {})
-        item = {
-            "idx": idx,
-            "parent_idx": parent,
-            "atom": atom.GetSymbol(),
-            "ppm": shifts[idx],
-            "confidence": confidence.get(idx, ""),
-            "mult": info.get("mult", ""),
-            "pattern": info.get("pattern", []),
-            "j_text": info.get("j_text", ""),
-        }
-        if nucleus == "13C":
-            item["dept"] = info.get("dept", "")
-            item["j_ch"] = info.get("j_ch")
-        data.append(item)
+        data.append(
+            {
+                "idx": idx,
+                "parent_idx": parent,
+                "atom": atom.GetSymbol(),
+                "ppm": shifts[idx],
+                "confidence": confidence.get(idx, ""),
+            }
+        )
+    coupling.annotate_predictions(mol_h, data, nucleus)
 
     return {
         "nucleus": nucleus,
