@@ -14,7 +14,7 @@ import os
 # --------------------------------------------------------------------------
 
 PLUGIN_NAME = "NMR Predictor (CASCADE)"
-PLUGIN_VERSION = "0.2.0"
+PLUGIN_VERSION = "0.2.1"
 PLUGIN_AUTHOR = "HiroYokoyama"
 PLUGIN_DESCRIPTION = (
     "Predict 1H and 13C NMR shifts with CASCADE, with estimated J couplings and "
