@@ -1,14 +1,11 @@
 name: CI
 
-# Disabled by default so a freshly-copied template does not start failing before
-# you have written anything: it only runs when you dispatch it by hand. Turn it
-# on permanently by uncommenting the two triggers below.
 on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
-  # push:
-  #   branches: [ main ]
-  # pull_request:
-  #   branches: [ main ]
 
 permissions:
   contents: read
@@ -34,7 +31,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pytest pytest-cov
-          pip install numpy PyQt6
+          pip install numpy PyQt6 rdkit matplotlib
 
       - name: Install Linux GUI libraries
         if: matrix.os == 'ubuntu-latest'
@@ -50,4 +47,4 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
           MOLEDITPY_HEADLESS: "1"
-        run: python -m pytest tests/ -v --cov=my_plugin --cov-report=term-missing
+        run: python -m pytest tests/ -v --cov=nmr_predictor_cascade --cov-report=term-missing

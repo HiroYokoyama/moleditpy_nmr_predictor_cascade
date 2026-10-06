@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g. 0.1.0 — without leading v)'
+        description: 'Release version (e.g. 0.1.0, without leading v)'
         required: true
   push:
     tags:
@@ -39,7 +39,7 @@ jobs:
         run: |
           FILE_VERSION=$(python3 -c "
           import re
-          text = open('my_plugin/__init__.py', encoding='utf-8').read()
+          text = open('nmr_predictor_cascade/__init__.py', encoding='utf-8').read()
           m = re.search(r\"PLUGIN_VERSION\s*=\s*['\\\"](.+?)['\\\"]\", text)
           print(m.group(1).strip() if m else '')
           ")
@@ -52,8 +52,8 @@ jobs:
 
       - name: Build release package
         run: |
-          cp README.md LICENSE my_plugin/
-          zip -r "my_plugin_${VERSION}.zip" my_plugin/ \
+          cp README.md LICENSE nmr_predictor_cascade/
+          zip -r "nmr_predictor_cascade_${VERSION}.zip" nmr_predictor_cascade/ \
             --exclude "*/__pycache__/*" "*/.git/*"
 
       - name: Create GitHub Release
@@ -61,9 +61,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "v$VERSION" \
-            --title "My Plugin $VERSION" \
+            --title "NMR Predictor (CASCADE) $VERSION" \
             --generate-notes \
-            "my_plugin_$VERSION.zip"
+            "nmr_predictor_cascade_$VERSION.zip"
 
       # Auto-registration only works if a REGISTRY_PAT secret exists on this
       # repository, which only the registry maintainer can issue. Without it the
@@ -93,4 +93,4 @@ jobs:
           echo
           echo "Open a 'Request Plugin Registration / Update' issue with the release URL:"
           echo "  https://github.com/HiroYokoyama/moleditpy-plugins/issues/new/choose"
-          echo "  asset: my_plugin_$VERSION.zip"
+          echo "  asset: nmr_predictor_cascade_$VERSION.zip"

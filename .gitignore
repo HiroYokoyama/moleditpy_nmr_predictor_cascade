@@ -5,4 +5,6 @@ __pycache__/
 dist/
 build/
 *.egg-info/
-my_plugin/settings.json
+
+# Per-user plugin settings written at runtime
+nmr_predictor_cascade/settings.json
