@@ -25,7 +25,7 @@ PLUGIN_CATEGORY = "Analysis"
 PLUGIN_TAGS = ["Analysis"]
 PLUGIN_DEPENDENCIES = ["matplotlib"]  # PySide6/rdkit/numpy/pyvista are the host's
 PLUGIN_OPTIONAL_DEPENDENCIES = []
-PLUGIN_SUPPORTED_MOLEDITPY_VERSION = ">=5.0.0a1, <6.0.0"
+PLUGIN_SUPPORTED_MOLEDITPY_VERSION = ">=5.0.0, <6.0.0"
 
 MENU_PATH = "Analysis/NMR Prediction (CASCADE)..."
 SETTINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings.json")
