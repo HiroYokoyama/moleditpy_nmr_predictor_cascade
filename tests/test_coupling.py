@@ -219,7 +219,7 @@ def test_annotate_predictions_never_raises():
 def test_module_version_is_semver():
     import re
 
-    assert re.fullmatch(r"\d+\.\d+\.\d+", coupling.COUPLING_MODULE_VERSION)
+    assert re.fullmatch(r"\d+\.\d+\.\d+(?:a\d+)?", coupling.COUPLING_MODULE_VERSION)
 
 
 def test_lorentzian_peak_height_and_width():

@@ -31,7 +31,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pytest pytest-cov
-          pip install numpy PyQt6 rdkit matplotlib
+          pip install numpy PySide6-Essentials rdkit matplotlib
 
       - name: Install Linux GUI libraries
         if: matrix.os == 'ubuntu-latest'
@@ -41,7 +41,7 @@ jobs:
 
       - name: Clone the main MoleditPy application
         # Without this the API compatibility test skips instead of running.
-        run: git clone --depth 1 https://github.com/HiroYokoyama/python_molecular_editor.git ../python_molecular_editor
+        run: git clone --depth 1 --branch "${{ vars.MOLEDITPY_REF || 'migrate/pyside6-without-openbabel' }}" https://github.com/HiroYokoyama/python_molecular_editor.git ../python_molecular_editor
 
       - name: Run test suite
         env:

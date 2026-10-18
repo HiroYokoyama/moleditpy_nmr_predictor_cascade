@@ -91,7 +91,7 @@ step.
 
 ## Requirements
 
-* MoleditPy 4.x (provides PyQt6, RDKit, PyVista)
+* MoleditPy 4.x (provides PySide6, RDKit, PyVista)
 * `matplotlib`
 * Internet access to `nova.chem.colostate.edu`
 
