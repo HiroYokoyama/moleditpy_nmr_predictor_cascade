@@ -6,9 +6,18 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      moleditpy_ref:
+        description: 'MoleditPy branch, tag, or full commit SHA (blank uses repository default)'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
+
+env:
+  MOLEDITPY_REF: ${{ inputs.moleditpy_ref || vars.MOLEDITPY_REF || 'migrate/pyside6-without-openbabel' }}
 
 jobs:
   test:
@@ -41,7 +50,13 @@ jobs:
 
       - name: Clone the main MoleditPy application
         # Without this the API compatibility test skips instead of running.
-        run: git clone --depth 1 --branch "${{ vars.MOLEDITPY_REF || 'migrate/pyside6-without-openbabel' }}" https://github.com/HiroYokoyama/python_molecular_editor.git ../python_molecular_editor
+        shell: bash
+        run: |
+          git init "../python_molecular_editor"
+          git -C "../python_molecular_editor" remote add origin https://github.com/HiroYokoyama/python_molecular_editor.git
+          git -C "../python_molecular_editor" fetch --depth 1 origin "$MOLEDITPY_REF"
+          git -C "../python_molecular_editor" checkout --detach FETCH_HEAD
+          git -C "../python_molecular_editor" log -1 --format="%H %s"
 
       - name: Run test suite
         env:
