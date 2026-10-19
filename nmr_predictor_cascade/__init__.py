@@ -14,7 +14,7 @@ import os
 # --------------------------------------------------------------------------
 
 PLUGIN_NAME = "NMR Predictor (CASCADE)"
-PLUGIN_VERSION = "1.0.0"
+PLUGIN_VERSION = "2.0.0"
 PLUGIN_AUTHOR = "HiroYokoyama"
 PLUGIN_DESCRIPTION = (
     "Predict 1H and 13C NMR shifts with CASCADE, with estimated J couplings and "
@@ -23,9 +23,9 @@ PLUGIN_DESCRIPTION = (
 )
 PLUGIN_CATEGORY = "Analysis"
 PLUGIN_TAGS = ["Analysis"]
-PLUGIN_DEPENDENCIES = ["matplotlib"]  # PyQt6/rdkit/numpy/pyvista are the host's
+PLUGIN_DEPENDENCIES = ["matplotlib"]  # PySide6/rdkit/numpy/pyvista are the host's
 PLUGIN_OPTIONAL_DEPENDENCIES = []
-PLUGIN_SUPPORTED_MOLEDITPY_VERSION = ">=4.0.0, <5.0.0"
+PLUGIN_SUPPORTED_MOLEDITPY_VERSION = ">=5.0.0, <6.0.0"
 
 MENU_PATH = "Analysis/NMR Prediction (CASCADE)..."
 SETTINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings.json")

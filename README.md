@@ -1,7 +1,7 @@
 # NMR Predictor (CASCADE) for MoleditPy
 
 [![CI](https://github.com/HiroYokoyama/moleditpy_nmr_predictor_cascade/actions/workflows/test.yml/badge.svg)](https://github.com/HiroYokoyama/moleditpy_nmr_predictor_cascade/actions/workflows/test.yml)
-[![MoleditPy](https://img.shields.io/badge/MoleditPy->=4.0.0-3577F7)](https://github.com/HiroYokoyama/python_molecular_editor)
+[![MoleditPy](https://img.shields.io/badge/MoleditPy-5.x-3577F7)](https://github.com/HiroYokoyama/python_molecular_editor)
 [![GitHub tag](https://img.shields.io/github/v/tag/HiroYokoyama/moleditpy_nmr_predictor_cascade?label=version)](https://github.com/HiroYokoyama/moleditpy_nmr_predictor_cascade/tags)
 [![GitHub Downloads](https://img.shields.io/github/downloads/HiroYokoyama/moleditpy_nmr_predictor_cascade/total)](https://github.com/HiroYokoyama/moleditpy_nmr_predictor_cascade/releases)
 
@@ -91,7 +91,7 @@ step.
 
 ## Requirements
 
-* MoleditPy 4.x (provides PyQt6, RDKit, PyVista)
+* MoleditPy 4.x (provides PySide6, RDKit, PyVista)
 * `matplotlib`
 * Internet access to `nova.chem.colostate.edu`
 
@@ -109,4 +109,8 @@ affiliated with them. Please use it considerately.
 
 ## Licence
 
-GPL-3.0 (see [LICENSE](LICENSE)).
+LGPL-3.0-or-later (see [LICENSE](LICENSE)).
+
+## Licensing scope
+
+First-party code in this migration is LGPL-3.0-or-later. See [LICENSE](LICENSE), [COPYING](COPYING) and [dependency/provenance terms](LICENSING.md). Third-party components and historical releases retain their own terms.

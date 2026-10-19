@@ -52,7 +52,7 @@ jobs:
 
       - name: Build release package
         run: |
-          cp README.md LICENSE nmr_predictor_cascade/
+          cp README.md LICENSE COPYING LICENSING.md nmr_predictor_cascade/
           zip -r "nmr_predictor_cascade_${VERSION}.zip" nmr_predictor_cascade/ \
             --exclude "*/__pycache__/*" "*/.git/*"
 

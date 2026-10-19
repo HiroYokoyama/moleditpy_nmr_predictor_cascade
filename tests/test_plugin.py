@@ -43,7 +43,7 @@ def test_required_metadata_is_present():
 
 
 def test_version_is_semver():
-    assert re.fullmatch(r"\d+\.\d+\.\d+", plugin.PLUGIN_VERSION)
+    assert re.fullmatch(r"\d+\.\d+\.\d+(?:a\d+)?", plugin.PLUGIN_VERSION)
 
 
 def test_description_discloses_the_external_server():
@@ -57,7 +57,7 @@ def test_description_discloses_the_external_server():
 def test_dependencies_are_lists_without_host_packages():
     assert isinstance(plugin.PLUGIN_DEPENDENCIES, list)
     assert isinstance(plugin.PLUGIN_OPTIONAL_DEPENDENCIES, list)
-    for name in ("PyQt6", "rdkit", "numpy"):
+    for name in ("PySide6", "rdkit", "numpy"):
         assert name not in plugin.PLUGIN_DEPENDENCIES
     assert "matplotlib" in plugin.PLUGIN_DEPENDENCIES
 
@@ -81,7 +81,7 @@ def test_importing_the_package_needs_no_qt_or_rdkit():
         "import sys\n"
         "class Block:\n"
         "    def find_spec(self, name, path=None, target=None):\n"
-        "        if name.split('.')[0] in ('PyQt6', 'rdkit', 'matplotlib', 'pyvista'):\n"
+        "        if name.split('.')[0] in ('PySide6', 'rdkit', 'matplotlib', 'pyvista'):\n"
         "            raise ModuleNotFoundError(name)\n"
         "sys.meta_path.insert(0, Block())\n"
         "import nmr_predictor_cascade as p\n"

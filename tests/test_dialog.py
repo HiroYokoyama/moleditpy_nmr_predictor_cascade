@@ -1,6 +1,6 @@
-"""Dialog tests against real PyQt6 + matplotlib, offscreen.
+"""Dialog tests against real PySide6 + matplotlib, offscreen.
 
-Skipped when PyQt6, matplotlib or RDKit are missing. pyvista is replaced by a
+Skipped when PySide6, matplotlib or RDKit are missing. pyvista is replaced by a
 stub when it is not installed — only Sphere() is used, and the plotter is a
 MagicMock anyway.
 """
@@ -12,7 +12,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-pytest.importorskip("PyQt6.QtWidgets")
+pytest.importorskip("PySide6.QtWidgets")
 pytest.importorskip("matplotlib")
 pytest.importorskip("rdkit")
 

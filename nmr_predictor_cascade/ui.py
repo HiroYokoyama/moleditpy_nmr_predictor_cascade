@@ -2,8 +2,8 @@
 
 import logging
 
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
@@ -92,9 +92,9 @@ class PredictDialog(QDialog):
 class PredictWorker(QThread):
     """Runs ``cascade_client.predict`` — network and RDKit work — off the UI thread."""
 
-    finished_signal = pyqtSignal(dict)
-    error_signal = pyqtSignal(str)
-    progress_signal = pyqtSignal(str)
+    finished_signal = Signal(dict)
+    error_signal = Signal(str)
+    progress_signal = Signal(str)
 
     def __init__(self, mol, settings):
         super().__init__()
