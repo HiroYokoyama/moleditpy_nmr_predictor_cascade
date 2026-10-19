@@ -109,4 +109,8 @@ affiliated with them. Please use it considerately.
 
 ## Licence
 
-GPL-3.0 (see [LICENSE](LICENSE)).
+LGPL-3.0-or-later (see [LICENSE](LICENSE)).
+
+## Licensing scope
+
+First-party code in this migration is LGPL-3.0-or-later. See [LICENSE](LICENSE), [COPYING](COPYING) and [dependency/provenance terms](LICENSING.md). Third-party components and historical releases retain their own terms.
