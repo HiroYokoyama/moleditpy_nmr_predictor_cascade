@@ -1,5 +1,7 @@
 """Menu flow: confirm what is sent, run the job off the UI thread, show the result."""
 
+from ._qt_callbacks import connect_queued
+
 import logging
 
 from PySide6.QtCore import Qt, QThread, Signal
@@ -187,10 +189,10 @@ def start_prediction(context):
             QMessageBox.critical(mw, "CASCADE Prediction Error", message)
 
     progress.canceled.connect(worker.cancel)
-    worker.progress_signal.connect(on_progress)
-    worker.finished_signal.connect(on_success)
-    worker.error_signal.connect(on_error)
-    worker.finished.connect(release)
+    connect_queued(worker.progress_signal, on_progress, mw, (str,), cleanup=(worker.finished,))
+    connect_queued(worker.finished_signal, on_success, mw, (object,), cleanup=(worker.finished,))
+    connect_queued(worker.error_signal, on_error, mw, (str,), cleanup=(worker.finished,))
+    connect_queued(worker.finished, release, cleanup=(worker.finished,))
     worker.start()
 
 
