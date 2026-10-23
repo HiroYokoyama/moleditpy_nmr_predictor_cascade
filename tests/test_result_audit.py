@@ -52,7 +52,9 @@ def test_duplicate_archive_basenames_are_rejected():
 
 def test_oversized_pax_metadata_is_bounded_before_tar_parsing(monkeypatch):
     output = io.BytesIO()
-    with tarfile.open(fileobj=output, mode="w:gz", format=tarfile.PAX_FORMAT) as archive:
+    with tarfile.open(
+        fileobj=output, mode="w:gz", format=tarfile.PAX_FORMAT
+    ) as archive:
         member = tarfile.TarInfo("weighted_shift.csv")
         member.pax_headers = {"comment": "x" * 40000}
         archive.addfile(member, io.BytesIO())
