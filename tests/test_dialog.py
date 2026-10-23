@@ -210,6 +210,7 @@ def test_highlight_falls_back_to_the_heavy_atom(make_dialog):
     dlg, ctx = make_dialog("1H")
     heavy = Chem.RemoveHs(ctx.mw.current_mol)
     ctx.mw.current_mol = heavy
+    dlg._source_mol = heavy  # This result was obtained for a host with implicit H.
     dlg.highlight_atom(3, persistent=True)
     centers = [c.kwargs["name"] for c in ctx.mw.plotter.add_mesh.call_args_list]
     assert centers == ["cascade_nmr_highlight_1"]
@@ -247,3 +248,97 @@ def test_predict_dialog_shows_what_is_sent(qapp):
     assert chosen["nucleus"] == "1H" and chosen["spectrometer_mhz"] == 600.0
     assert chosen["symmetrize"] is False
     dlg.deleteLater()
+
+
+def test_esc_stops_selection_timer(make_dialog):
+    dialog, _context = make_dialog("13C")
+    dialog.show()
+    assert dialog.sel_timer.isActive()
+    dialog.reject()
+    assert not dialog.sel_timer.isActive()
+
+
+def test_changed_molecule_cannot_receive_old_highlights(make_dialog):
+    dialog, context = make_dialog("13C")
+    context.mw.current_mol = Chem.MolFromSmiles("CCC")
+    dialog.highlight_atom(0)
+    context.mw.plotter.add_mesh.assert_not_called()
+    assert "changed" in dialog.status_label.text()
+
+
+def test_highlights_are_removed_from_original_plotter(make_dialog):
+    dialog, context = make_dialog("13C")
+    dialog.highlight_atom(0)
+    original = context.mw.plotter
+    replacement = MagicMock()
+    context.mw.plotter = replacement
+    dialog.clear_3d_visuals()
+    assert original.remove_actor.call_count == 2
+    replacement.remove_actor.assert_not_called()
+
+
+@pytest.mark.parametrize("state", ["normal", "cancelled", "changed"])
+def test_queued_prediction_result_respects_cancellation_and_structure(
+    qapp, monkeypatch, state
+):
+    from types import SimpleNamespace
+
+    from PySide6.QtCore import QObject, Signal
+    from PySide6.QtWidgets import QProgressDialog, QWidget
+
+    from nmr_predictor_cascade import ui
+
+    made = []
+
+    class Worker(QObject):
+        finished = Signal()
+        finished_signal = Signal(dict)
+        progress_signal = Signal(str)
+        error_signal = Signal(str)
+
+        def __init__(self, mol, settings):
+            super().__init__()
+            self.cancelled = False
+            made.append(self)
+
+        def start(self):
+            pass
+
+        def cancel(self):
+            self.cancelled = True
+
+        def is_cancelled(self):
+            return self.cancelled
+
+        def isRunning(self):
+            return False
+
+    window = QWidget()
+    mol = Chem.MolFromSmiles("CCO")
+    context = SimpleNamespace(current_molecule=mol, get_main_window=lambda: window)
+    settings = {"nucleus": "1H", "server": "https://example.invalid"}
+    monkeypatch.setattr(ui, "PredictWorker", Worker)
+    monkeypatch.setattr(
+        ui,
+        "PredictDialog",
+        lambda *a: SimpleNamespace(exec=lambda: True, chosen_settings=lambda: settings),
+    )
+    monkeypatch.setattr(ui, "load_settings", lambda: settings)
+    monkeypatch.setattr(ui, "save_settings", lambda settings: None)
+    monkeypatch.setattr(ui, "_worker", None)
+    shown = MagicMock()
+    monkeypatch.setattr(ui, "show_result", shown)
+    ui.start_prediction(context)
+    worker = made[0]
+    result = {"nucleus": "1H", "data": []}
+    worker.finished_signal.emit(result)
+    if state == "cancelled":
+        window.findChild(QProgressDialog).cancel()
+    elif state == "changed":
+        context.current_molecule = Chem.MolFromSmiles("CCC")
+    qapp.processEvents()
+    assert shown.call_count == (1 if state == "normal" else 0)
+    worker.finished.emit()
+    qapp.processEvents()
+    window.close()
+    window.deleteLater()

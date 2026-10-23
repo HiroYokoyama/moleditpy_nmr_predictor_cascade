@@ -27,6 +27,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import math
 import tarfile
 import time
 import urllib.error
@@ -41,6 +42,9 @@ POLL_INTERVAL_SEC = 2.0
 JOB_TIMEOUT_SEC = 600.0
 #: Per-request network timeout.
 HTTP_TIMEOUT_SEC = 60.0
+MAX_RESPONSE_BYTES = 64 * 1024 * 1024
+MAX_ARCHIVE_BYTES = 128 * 1024 * 1024
+MAX_ARCHIVE_MEMBERS = 128
 
 USER_AGENT = "MoleditPy-CASCADE-plugin"
 
@@ -151,9 +155,14 @@ class CascadeClient:
         request = urllib.request.Request(url, data=body, headers=headers)
         try:
             with self.opener(request, HTTP_TIMEOUT_SEC) as response:
-                return response.read()
+                raw = response.read(MAX_RESPONSE_BYTES + 1)
+                if len(raw) > MAX_RESPONSE_BYTES:
+                    raise CascadeError("The CASCADE response exceeds the 64 MiB limit.")
+                return raw
         except urllib.error.HTTPError as exc:
-            raise CascadeError(f"The CASCADE server answered HTTP {exc.code} for\n{url}") from exc
+            raise CascadeError(
+                f"The CASCADE server answered HTTP {exc.code} for\n{url}"
+            ) from exc
         except (urllib.error.URLError, OSError) as exc:
             reason = getattr(exc, "reason", exc)
             raise CascadeError(
@@ -207,17 +216,37 @@ class CascadeClient:
 
     def download(self, task_id: str) -> dict:
         """Fetch and unpack the result archive: ``{file name: text}``."""
-        raw = self._request(self._url(f"/download/{urllib.parse.quote(task_id)}/"))
+        raw = self._request(
+            self._url(f"/download/{urllib.parse.quote(task_id, safe='')}/")
+        )
         try:
             files = {}
             with tarfile.open(fileobj=io.BytesIO(raw), mode="r:gz") as archive:
-                for member in archive.getmembers():
+                total = 0
+                for count, member in enumerate(archive, 1):
+                    if count > MAX_ARCHIVE_MEMBERS:
+                        raise CascadeError(
+                            "The CASCADE archive contains too many entries."
+                        )
                     if not member.isfile():
                         continue
+                    total += member.size
+                    if member.size > MAX_RESPONSE_BYTES or total > MAX_ARCHIVE_BYTES:
+                        raise CascadeError(
+                            "The CASCADE archive exceeds the unpacked size limit."
+                        )
+                    name = member.name.rsplit("/", 1)[-1]
+                    if name in files:
+                        raise CascadeError(
+                            "The CASCADE archive contains duplicate result names."
+                        )
                     handle = archive.extractfile(member)
                     if handle is not None:
-                        name = member.name.rsplit("/", 1)[-1]
-                        files[name] = handle.read().decode("utf-8", "replace")
+                        with handle:
+                            raw_text = handle.read(MAX_RESPONSE_BYTES + 1)
+                        if len(raw_text) > MAX_RESPONSE_BYTES:
+                            raise CascadeError("The CASCADE result file is too large.")
+                        files[name] = raw_text.decode("utf-8", "replace")
         except (tarfile.TarError, OSError, EOFError) as exc:
             raise CascadeError("The CASCADE result archive could not be read.") from exc
         if "weighted_shift.csv" not in files or "conformers.sdf" not in files:
@@ -255,6 +284,8 @@ def parse_weighted_shifts(text: str) -> list:
             ppm = float(row["Shift"])
         except (KeyError, TypeError, ValueError):
             continue
+        if idx < 0 or not math.isfinite(ppm):
+            continue
         rows.append((idx, ppm, (row.get("Confidence") or "").strip()))
     if not rows:
         raise CascadeError("The CASCADE result contains no shifts.")
@@ -268,6 +299,8 @@ def parse_conformer_count(text: str) -> int:
     ids = set()
     for row in csv.DictReader(io.StringIO(text)):
         ids.add(row.get("cf_id"))
+    ids.discard(None)
+    ids.discard("")
     return len(ids)
 
 
@@ -312,7 +345,7 @@ def symmetrize(values: dict, classes) -> dict:
         groups.setdefault(classes[idx], []).append(idx)
     out = {}
     for members in groups.values():
-        mean = sum(values[i] for i in members) / len(members)
+        mean = sum(values[i] / len(members) for i in members)
         for i in members:
             out[i] = mean
     return out
@@ -343,8 +376,13 @@ def build_result(files: dict, mol_h, nucleus: str, symmetrize_shifts: bool = Tru
         shifts = symmetrize(shifts, coupling.symmetry_classes(mol_h))
 
     data = []
+    target_number = 1 if nucleus == "1H" else 6
     for idx in sorted(shifts):
         atom = mol_h.GetAtomWithIdx(idx)
+        if atom.GetAtomicNum() != target_number:
+            continue
+        if atom.GetIsotope() not in (0, 1 if nucleus == "1H" else 13):
+            continue
         nbrs = atom.GetNeighbors()
         parent = nbrs[0].GetIdx() if atom.GetAtomicNum() == 1 and nbrs else idx
         data.append(
@@ -355,6 +393,10 @@ def build_result(files: dict, mol_h, nucleus: str, symmetrize_shifts: bool = Tru
                 "ppm": shifts[idx],
                 "confidence": confidence.get(idx, ""),
             }
+        )
+    if not data:
+        raise CascadeError(
+            "The CASCADE result contains no valid shifts for the selected nucleus."
         )
     coupling.annotate_predictions(mol_h, data, nucleus)
 
@@ -372,6 +414,8 @@ def predict(mol, nucleus: str, server=DEFAULT_SERVER, opener=None, is_cancelled=
     """Whole round trip for one molecule; blocking — run it off the UI thread."""
     if mol is None or mol.GetNumAtoms() == 0:
         raise CascadeError("Please draw or load a molecule first.")
+    if nucleus not in NUCLEUS_TYPE:
+        raise CascadeError(f"Unsupported nucleus: {nucleus}")
     mol_h = prepare_molecule(mol)
     target = 6 if nucleus == "13C" else 1
     if not any(a.GetAtomicNum() == target for a in mol_h.GetAtoms()):

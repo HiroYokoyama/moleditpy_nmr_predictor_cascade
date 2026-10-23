@@ -92,7 +92,8 @@ import math
 #: between the two plugins is visible at a glance.
 #: 1.0.0  couplings, multiplets, 1J(CH)
 #: 1.1.0  lorentzian_curve() for line broadening
-COUPLING_MODULE_VERSION = "1.1.0"
+#: 1.1.1  exclude non-1H isotopes from proton coupling estimates
+COUPLING_MODULE_VERSION = "1.1.1"
 
 #: Default full width at half maximum (Hz) for line broadening.
 DEFAULT_LINEWIDTH_HZ = {"1H": 1.0, "13C": 2.0}
@@ -496,7 +497,10 @@ def predict_ch_couplings(mol_h):
     for atom in mol_h.GetAtoms():
         if atom.GetAtomicNum() != 6:
             continue
-        n_h = atom.GetTotalNumHs(includeNeighbors=True)
+        n_h = atom.GetTotalNumHs(includeNeighbors=True) - sum(
+            n.GetAtomicNum() == 1 and n.GetIsotope() not in (0, 1)
+            for n in atom.GetNeighbors()
+        )
         j = one_bond_ch(atom) if n_h else None
         pattern = [(j, n_h)] if n_h else []
         result[atom.GetIdx()] = {
@@ -574,16 +578,17 @@ def _dihedral(mol, h1, c1, c2, h2):
     try:
         from rdkit.Chem import rdMolTransforms
 
-        return rdMolTransforms.GetDihedralDeg(
+        angle = rdMolTransforms.GetDihedralDeg(
             mol.GetConformer(), h1.GetIdx(), c1.GetIdx(), c2.GetIdx(), h2.GetIdx()
         )
+        return angle if math.isfinite(angle) else None
     except Exception:
         return None
 
 
 def _is_coupling_proton(atom):
     """A hydrogen bonded to one atom that is not O, N or S."""
-    if atom.GetAtomicNum() != 1:
+    if atom.GetAtomicNum() != 1 or atom.GetIsotope() not in (0, 1):
         return False
     nbrs = atom.GetNeighbors()
     return len(nbrs) == 1 and nbrs[0].GetSymbol() not in EXCHANGEABLE_PARENTS
@@ -594,7 +599,11 @@ def _protons_on(atom, proton_ids):
 
 
 def _count_h_neighbours(atom):
-    return sum(1 for n in atom.GetNeighbors() if n.GetAtomicNum() == 1)
+    return sum(
+        1
+        for n in atom.GetNeighbors()
+        if n.GetAtomicNum() == 1 and n.GetIsotope() in (0, 1)
+    )
 
 
 def _single_bonded(atom):
