@@ -6,6 +6,7 @@ columns and the multiplet display added.
 
 import csv
 import logging
+import math
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
@@ -81,6 +82,8 @@ class ResultDialog(QDialog):
         from matplotlib.figure import Figure
 
         self.context = context
+        self._source_mol = getattr(context.get_main_window(), "current_mol", None)
+        self._highlight_plotter = None
         self.settings = dict(settings or {})
         self.data = result_data["data"]
         self.nucleus = result_data["nucleus"]
@@ -416,6 +419,14 @@ class ResultDialog(QDialog):
 
     def highlight_atom(self, row_idx, persistent=True):
         """Sphere + label on every atom of the signal at this row's shift."""
+        if not 0 <= row_idx < len(self.data):
+            return
+        if not self._source_is_current():
+            self.clear_3d_visuals()
+            self.status_label.setText(
+                "Structure changed since prediction - re-run the prediction."
+            )
+            return
         import pyvista as pv
         from rdkit import Chem
 
@@ -430,6 +441,7 @@ class ResultDialog(QDialog):
                 self.status_label.setText("Convert the structure to 3D to see highlights.")
                 return
             conf = mol.GetConformer()
+            self._highlight_plotter = plotter
             n_atoms = mol.GetNumAtoms()
             table = Chem.GetPeriodicTable()
 
@@ -439,7 +451,7 @@ class ResultDialog(QDialog):
             targets = {}
             for item in matching:
                 idx = item["idx"] if item["idx"] < n_atoms else item.get("parent_idx", item["idx"])
-                if idx >= n_atoms:
+                if not 0 <= idx < n_atoms:
                     self.status_label.setText(
                         "Structure changed since prediction - re-run the prediction."
                     )
@@ -451,6 +463,8 @@ class ResultDialog(QDialog):
             for atom_idx, item in targets:
                 pos = conf.GetAtomPosition(atom_idx)
                 point = (pos.x, pos.y, pos.z)
+                if not all(math.isfinite(value) for value in point):
+                    raise ValueError("Highlight coordinates must be finite.")
                 radius = table.GetRvdw(mol.GetAtomWithIdx(atom_idx).GetSymbol()) * 0.3 * 1.4
                 sphere_name = f"cascade_nmr_highlight_{atom_idx}"
                 label_name = f"cascade_nmr_label_{atom_idx}"
@@ -493,14 +507,27 @@ class ResultDialog(QDialog):
             logging.warning("CASCADE NMR: highlight failed: %s", exc)
 
     def clear_3d_visuals(self):
+        """Remove highlights from the plotter that owns them."""
+        names, self._highlight_names = self._highlight_names, []
+        owner, self._highlight_plotter = getattr(self, "_highlight_plotter", None), None
+        if not names:
+            return
         try:
-            plotter = self.context.get_main_window().plotter
-            for name in self._highlight_names:
-                plotter.remove_actor(name)
-            self._highlight_names = []
+            plotter = (
+                owner if owner is not None else self.context.get_main_window().plotter
+            )
+            for name in names:
+                try:
+                    plotter.remove_actor(name)
+                except (RuntimeError, AttributeError, KeyError, ValueError):
+                    logging.getLogger(__name__).exception(
+                        "CASCADE NMR: could not remove highlight %s", name
+                    )
             plotter.render()
-        except Exception as exc:
-            logging.warning("CASCADE NMR: could not clear highlights: %s", exc)
+        except (RuntimeError, AttributeError, KeyError, ValueError):
+            logging.getLogger(__name__).exception(
+                "CASCADE NMR: could not redraw after highlight cleanup"
+            )
 
     def clear_selection(self):
         self.table.clearSelection()
@@ -511,6 +538,14 @@ class ResultDialog(QDialog):
 
     def _sync_from_3d(self):
         """Select the table row of an atom picked in the 3D view."""
+        if not self._source_is_current():
+            self.clear_3d_visuals()
+            self.table.clearSelection()
+            self.sel_timer.stop()
+            self.status_label.setText(
+                "Structure changed since prediction - re-run the prediction."
+            )
+            return
         mw = self.context.get_main_window()
         manager = getattr(mw, "edit_3d_manager", None)
         selected = getattr(manager, "selected_atoms_3d", None)
@@ -556,7 +591,7 @@ class ResultDialog(QDialog):
         <p>Please cite: Guan, Y.; Sowndarya, S. V. S.; Gallegos, L. C.; St. John, P. C.;
         Paton, R. S. <i>Chem. Sci.</i> <b>2021</b>, 12, 12012-12026.</p>
         <p><b>Couplings</b> (multiplicity, J) are rule-based estimates made by this
-        plugin from typical values and a Karplus curve; they are not part of CASCADE.</p>
+        plugin from typical values and a Karplus curve; they are not part of CASCADE. Only 1H coupling is modeled; isotope couplings are omitted.</p>
         <p>Author: {PLUGIN_AUTHOR}<br>Version: {PLUGIN_VERSION}<br>
         Shared coupling module: {coupling.COUPLING_MODULE_VERSION}</p>
         """
@@ -565,6 +600,17 @@ class ResultDialog(QDialog):
         box.setTextFormat(Qt.TextFormat.RichText)
         box.setText(text)
         box.exec()
+
+    def _source_is_current(self):
+        try:
+            return self.context.get_main_window().current_mol is self._source_mol
+        except (AttributeError, RuntimeError):
+            return False
+
+    def done(self, result):
+        self.sel_timer.stop()
+        self.clear_3d_visuals()
+        super().done(result)
 
     def closeEvent(self, event):
         self.clear_3d_visuals()

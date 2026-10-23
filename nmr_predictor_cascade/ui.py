@@ -179,7 +179,10 @@ def start_prediction(context):
             progress.setLabelText(text)
 
     def on_success(result):
+        cancelled = progress.wasCanceled() or worker.is_cancelled()
         progress.cancel()
+        if cancelled or context.current_molecule is not mol:
+            return
         show_result(context, result, settings)
 
     def on_error(message):
@@ -190,7 +193,9 @@ def start_prediction(context):
 
     progress.canceled.connect(worker.cancel)
     connect_queued(worker.progress_signal, on_progress, mw, (str,), cleanup=(worker.finished,))
-    connect_queued(worker.finished_signal, on_success, mw, (object,), cleanup=(worker.finished,))
+    connect_queued(
+        worker.finished_signal, on_success, mw, (dict,), cleanup=(worker.finished,)
+    )
     connect_queued(worker.error_signal, on_error, mw, (str,), cleanup=(worker.finished,))
     connect_queued(worker.finished, release, cleanup=(worker.finished,))
     worker.start()
