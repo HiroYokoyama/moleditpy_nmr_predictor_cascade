@@ -50,6 +50,17 @@ def test_duplicate_archive_basenames_are_rejected():
         _client_with(raw).download("task")
 
 
+def test_oversized_pax_metadata_is_bounded_before_tar_parsing(monkeypatch):
+    output = io.BytesIO()
+    with tarfile.open(fileobj=output, mode="w:gz", format=tarfile.PAX_FORMAT) as archive:
+        member = tarfile.TarInfo("weighted_shift.csv")
+        member.pax_headers = {"comment": "x" * 40000}
+        archive.addfile(member, io.BytesIO())
+    monkeypatch.setattr(cc, "MAX_ARCHIVE_BYTES", 20000)
+    with pytest.raises(cc.CascadeError, match="unpacked size"):
+        _client_with(output.getvalue()).download("task")
+
+
 def test_excessive_archive_members_are_rejected(monkeypatch):
     monkeypatch.setattr(cc, "MAX_ARCHIVE_MEMBERS", 2)
     with pytest.raises(cc.CascadeError, match="too many"):

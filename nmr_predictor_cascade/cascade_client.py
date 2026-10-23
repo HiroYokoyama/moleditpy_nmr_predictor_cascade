@@ -25,6 +25,7 @@ this module touches Qt, so it is unit-tested with a fake ``opener``.
 from __future__ import annotations
 
 import csv
+import gzip
 import io
 import json
 import math
@@ -221,7 +222,13 @@ class CascadeClient:
         )
         try:
             files = {}
-            with tarfile.open(fileobj=io.BytesIO(raw), mode="r:gz") as archive:
+            # Bound the whole tar stream before parsing: PAX/long-name headers
+            # are consumed internally and never reach the member-size checks.
+            with gzip.GzipFile(fileobj=io.BytesIO(raw)) as compressed:
+                unpacked = compressed.read(MAX_ARCHIVE_BYTES + 1)
+            if len(unpacked) > MAX_ARCHIVE_BYTES:
+                raise CascadeError("The CASCADE archive exceeds the unpacked size limit.")
+            with tarfile.open(fileobj=io.BytesIO(unpacked), mode="r:") as archive:
                 total = 0
                 for count, member in enumerate(archive, 1):
                     if count > MAX_ARCHIVE_MEMBERS:
