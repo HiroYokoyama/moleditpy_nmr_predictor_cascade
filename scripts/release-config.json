@@ -1,0 +1,19 @@
+{
+  "source": "nmr_predictor_cascade/__init__.py",
+  "title": "NMR Predictor (CASCADE)",
+  "package": "nmr_predictor_cascade",
+  "archive": "nmr_predictor_cascade_{version}.zip",
+  "assets": [
+    "nmr_predictor_cascade_{version}.zip"
+  ],
+  "include": [
+    "README.md",
+    "LICENSE",
+    "COPYING",
+    "LICENSING.md"
+  ],
+  "exclude": [
+    "*/__pycache__/*",
+    "*/.git/*"
+  ]
+}
