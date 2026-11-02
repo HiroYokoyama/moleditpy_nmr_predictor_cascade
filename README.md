@@ -56,10 +56,6 @@ that predicts **1H** and **13C** NMR chemical shifts with
 
 The choices are remembered in `settings.json` next to the plugin.
 
-Version 2.0.3 gives the result dialog more room for table columns, alternating
-row shading and a compact result summary. The coupling explanation is available
-in a tooltip and About; the footer identifies CASCADE and its authors.
-
 ![13C result for toluene](img/13c.png)
 
 *Toluene, 13C: carbon types and 1J(CH) next to the CASCADE shifts.*
@@ -95,7 +91,7 @@ step.
 
 ## Requirements
 
-* MoleditPy 5.x (provides PySide6, RDKit, PyVista)
+* MoleditPy 4.x (provides PySide6, RDKit, PyVista)
 * `matplotlib`
 * Internet access to `nova.chem.colostate.edu`
 

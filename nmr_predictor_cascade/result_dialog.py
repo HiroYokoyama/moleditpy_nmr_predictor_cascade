@@ -105,9 +105,6 @@ class ResultDialog(QDialog):
         layout.setContentsMargins(12, 12, 12, 12)
         layout.setSpacing(8)
         summary = f"{self.nucleus} · {len(self.data)} nuclei predicted"
-        n_conformers = result_data.get("n_conformers")
-        if n_conformers:
-            summary += f" · {n_conformers} conformer(s)"
         summary_label = QLabel(summary)
         summary_label.setWordWrap(True)
         layout.addWidget(summary_label)
@@ -118,8 +115,8 @@ class ResultDialog(QDialog):
         self.canvas.setMinimumHeight(240)
         self.toolbar = NavigationToolbar2QT(self.canvas, self)
 
-        title = QLabel("Spectrum")
-        title.setStyleSheet("font-weight: bold;")
+        title = QLabel("Graph Controls")
+        title.setStyleSheet("font-weight: bold; color: #555;")
 
         range_row = QHBoxLayout()
         range_row.addWidget(QLabel("Range (ppm):"))
@@ -183,12 +180,10 @@ class ResultDialog(QDialog):
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.table.setAlternatingRowColors(True)
-        self.table.verticalHeader().setDefaultSectionSize(24)
-        self.table.setMinimumHeight(150)
-        self.table.setToolTip(
-            "Confidence is reported by CASCADE; it is not a numerical error bound."
+        self.table.setStyleSheet(
+            "QTableWidget::item:selected { background-color: pink; color: black; }"
         )
+        self.table.setMinimumHeight(150)
         self.table.setRowCount(len(self.data))
         for row, item in enumerate(self.data):
             for col, text in enumerate(row_values(item, self.nucleus)):
