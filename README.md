@@ -12,8 +12,8 @@ that predicts **1H** and **13C** NMR chemical shifts with
 
 ![1H result for methyl (E)-crotonate](img/main.png)
 
-*MoleditPy with methyl (E)-crotonate, 1H shifts as returned by CASCADE; the selected olefinic
-proton is a dq (J = 17.0, 7.0 Hz).*
+*Result dialog for methyl (E)-crotonate. The olefinic proton at 7.19 ppm is a dq
+(J = 17.0, 7.0 Hz). Screenshots use fixed example shifts to illustrate the UI.*
 
 > **This plugin sends your structure to an external server.**
 > The molecule is sent as a SMILES string to the CASCADE web server run by the
