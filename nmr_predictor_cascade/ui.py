@@ -33,9 +33,12 @@ class PredictDialog(QDialog):
     def __init__(self, parent, settings, smiles):
         super().__init__(parent)
         self.setWindowTitle("NMR Prediction (CASCADE)")
+        self.setMinimumWidth(540)
         self.settings = dict(settings)
 
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(10)
         form = QFormLayout()
 
         self.nucleus_combo = QComboBox()

@@ -12,8 +12,8 @@ that predicts **1H** and **13C** NMR chemical shifts with
 
 ![1H result for methyl (E)-crotonate](img/main.png)
 
-*MoleditPy with methyl (E)-crotonate, 1H shifts as returned by CASCADE; the selected olefinic
-proton is a dq (J = 17.0, 7.0 Hz).*
+*Result dialog for methyl (E)-crotonate. The olefinic proton at 7.19 ppm is a dq
+(J = 17.0, 7.0 Hz). Screenshots use fixed example shifts to illustrate the UI.*
 
 > **This plugin sends your structure to an external server.**
 > The molecule is sent as a SMILES string to the CASCADE web server run by the
@@ -56,6 +56,10 @@ proton is a dq (J = 17.0, 7.0 Hz).*
 
 The choices are remembered in `settings.json` next to the plugin.
 
+Version 2.0.3 gives the result dialog more room for table columns, alternating
+row shading and a compact result summary. The coupling explanation is available
+in a tooltip and About; the footer identifies CASCADE and its authors.
+
 ![13C result for toluene](img/13c.png)
 
 *Toluene, 13C: carbon types and 1J(CH) next to the CASCADE shifts.*
@@ -91,7 +95,7 @@ step.
 
 ## Requirements
 
-* MoleditPy 4.x (provides PySide6, RDKit, PyVista)
+* MoleditPy 5.x (provides PySide6, RDKit, PyVista)
 * `matplotlib`
 * Internet access to `nova.chem.colostate.edu`
 

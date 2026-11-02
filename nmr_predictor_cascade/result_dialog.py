@@ -90,7 +90,7 @@ class ResultDialog(QDialog):
         self.result_info = result_data
 
         self.setWindowTitle(f"CASCADE NMR Prediction ({self.nucleus})")
-        self.resize(680, 840)
+        self.resize(940, 880)
         self.setWindowModality(Qt.WindowModality.NonModal)
 
         self._highlight_names = []
@@ -102,15 +102,24 @@ class ResultDialog(QDialog):
 
         layout = QVBoxLayout()
         self.setLayout(layout)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(8)
+        summary = f"{self.nucleus} · {len(self.data)} nuclei predicted"
+        n_conformers = result_data.get("n_conformers")
+        if n_conformers:
+            summary += f" · {n_conformers} conformer(s)"
+        summary_label = QLabel(summary)
+        summary_label.setWordWrap(True)
+        layout.addWidget(summary_label)
 
         # -- spectrum ------------------------------------------------------
         self.figure = Figure(figsize=(5, 3.5))
-        self.figure.subplots_adjust(left=0.1, right=0.95, top=0.9, bottom=0.15)
         self.canvas = FigureCanvas(self.figure)
+        self.canvas.setMinimumHeight(240)
         self.toolbar = NavigationToolbar2QT(self.canvas, self)
 
-        title = QLabel("Graph Controls")
-        title.setStyleSheet("font-weight: bold; color: #555;")
+        title = QLabel("Spectrum")
+        title.setStyleSheet("font-weight: bold;")
 
         range_row = QHBoxLayout()
         range_row.addWidget(QLabel("Range (ppm):"))
@@ -164,7 +173,7 @@ class ResultDialog(QDialog):
         layout.addLayout(range_row)
         layout.addLayout(mult_row)
         layout.addLayout(broad_row)
-        layout.addWidget(self.canvas)
+        layout.addWidget(self.canvas, 3)
 
         # -- table ---------------------------------------------------------
         headers = columns_for(self.nucleus)
@@ -174,8 +183,11 @@ class ResultDialog(QDialog):
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.table.setStyleSheet(
-            "QTableWidget::item:selected { background-color: pink; color: black; }"
+        self.table.setAlternatingRowColors(True)
+        self.table.verticalHeader().setDefaultSectionSize(24)
+        self.table.setMinimumHeight(150)
+        self.table.setToolTip(
+            "Confidence is reported by CASCADE; it is not a numerical error bound."
         )
         self.table.setRowCount(len(self.data))
         for row, item in enumerate(self.data):
@@ -186,11 +198,14 @@ class ResultDialog(QDialog):
                     align = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
                 cell.setTextAlignment(align)
                 self.table.setItem(row, col, cell)
-        layout.addWidget(self.table)
+        layout.addWidget(self.table, 2)
 
         note = QLabel(
-            "Couplings are rule-based estimates (typical values and a Karplus curve), "
-            "not part of the CASCADE prediction."
+            "Shifts: CASCADE. Couplings: local estimates."
+        )
+        note.setToolTip(
+            "Couplings use typical values and a Karplus curve; "
+            "they are not part of the CASCADE shift prediction."
         )
         note.setWordWrap(True)
         note.setStyleSheet("color: gray; font-size: 10px;")
@@ -219,7 +234,7 @@ class ResultDialog(QDialog):
 
         credit_row = QHBoxLayout()
         credit_row.addStretch()
-        credit = QLabel("POWERED BY CASCADE (Paton group, Colorado State University)")
+        credit = QLabel("CASCADE · Paton group, Colorado State University")
         credit.setStyleSheet("color: gray; font-size: 9px; font-style: italic;")
         credit_row.addWidget(credit)
         layout.addLayout(credit_row)
@@ -280,6 +295,7 @@ class ResultDialog(QDialog):
 
     def plot_spectrum(self, *_args):
         self.figure.clear()
+        self.figure.subplots_adjust(left=0.1, right=0.95, top=0.88, bottom=0.22)
         # figure.clear() destroyed the highlight artists.
         self._graph_line = None
         self._hover_line = None
@@ -309,7 +325,7 @@ class ResultDialog(QDialog):
 
         ax.set_xlabel("Chemical Shift (ppm)")
         ax.set_ylabel("Intensity")
-        ax.set_title(f"{self.nucleus} NMR Predicted Spectrum (CASCADE)")
+        ax.set_title(f"{self.nucleus} NMR Prediction (CASCADE)")
         ax.grid(True, axis="x", linestyle=":", alpha=0.5)
 
         # Keep the selection marker across redraws.

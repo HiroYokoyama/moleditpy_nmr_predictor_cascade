@@ -10,7 +10,8 @@
     "README.md",
     "LICENSE",
     "COPYING",
-    "LICENSING.md"
+    "LICENSING.md",
+    "img"
   ],
   "exclude": [
     "*/__pycache__/*",
