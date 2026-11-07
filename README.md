@@ -10,17 +10,27 @@ that predicts **1H** and **13C** NMR chemical shifts with
 [CASCADE](https://nova.chem.colostate.edu/v2/cascade/), and estimates the
 **coupling pattern** of every signal (s, d, t, q, dd, dq, ... with J in Hz).
 
-![1H result for methyl (E)-crotonate](img/main.png)
-
-*Result dialog for methyl (E)-crotonate. The olefinic proton at 7.19 ppm is a dq
-(J = 17.0, 7.0 Hz). Screenshots use fixed example shifts to illustrate the UI.*
-
 > **This plugin sends your structure to an external server.**
 > The molecule is sent as a SMILES string to the CASCADE web server run by the
 > Paton group at Colorado State University (`nova.chem.colostate.edu`). Every
 > prediction shows the exact SMILES and asks before anything is sent. Do not
 > use it for structures you must keep confidential. An internet connection is
 > required.
+
+![1H result for methyl (E)-crotonate](https://raw.githubusercontent.com/HiroYokoyama/moleditpy_nmr_predictor_cascade/v2.0.4/img/main.png)
+
+*Result dialog for methyl (E)-crotonate. The olefinic proton at 7.19 ppm is a dq
+(J = 17.0, 7.0 Hz). Screenshots use fixed example shifts to illustrate the UI.*
+
+## Requirements and installation
+
+- **MoleditPy >=5.0.0, <6.0.0**, with PySide6, RDKit and PyVista.
+- `matplotlib`.
+- Internet access to `nova.chem.colostate.edu`.
+
+Install the release ZIP through MoleditPy's Plugin Installer, or extract its
+`nmr_predictor_cascade/` folder into your user plugin directory. Restart
+MoleditPy, then open **Analysis > NMR Prediction (CASCADE)...**.
 
 ## Features
 
@@ -45,10 +55,10 @@ that predicts **1H** and **13C** NMR chemical shifts with
    the 3D structure).
 2. **Analysis > NMR Prediction (CASCADE)...**
 3. Pick the nucleus and spectrometer frequency, check the SMILES that will be
-   sent, and press **Send & Predict**. A job usually takes a few seconds to a
-   minute; it can be cancelled.
+   sent, and press **Send & Predict**. The job runs in the background and can be
+   cancelled; completion time depends on the server.
 
-   ![The confirmation shown before anything is sent](img/confirm.png)
+   ![The confirmation shown before anything is sent](https://raw.githubusercontent.com/HiroYokoyama/moleditpy_nmr_predictor_cascade/v2.0.4/img/confirm.png)
 
 4. In the result window, hover or click peaks (or table rows) to highlight the
    atoms in 3D. **Graph Controls** set the ppm range, the multiplets and the
@@ -56,7 +66,7 @@ that predicts **1H** and **13C** NMR chemical shifts with
 
 The choices are remembered in `settings.json` next to the plugin.
 
-![13C result for toluene](img/13c.png)
+![13C result for toluene](https://raw.githubusercontent.com/HiroYokoyama/moleditpy_nmr_predictor_cascade/v2.0.4/img/13c.png)
 
 *Toluene, 13C: carbon types and 1J(CH) next to the CASCADE shifts.*
 
@@ -80,7 +90,7 @@ OH, NH and SH protons are treated as exchanging (uncoupled). Spectra are drawn
 first-order. These are typical values for orientation, not a fit to a real
 spectrum.
 
-![Olefinic region at 400 MHz with 1 Hz lines](img/multiplets.png)
+![Olefinic region at 400 MHz with 1 Hz lines](https://raw.githubusercontent.com/HiroYokoyama/moleditpy_nmr_predictor_cascade/v2.0.4/img/multiplets.png)
 
 *The olefinic region of methyl (E)-crotonate at 400 MHz: the dq at 7.19 ppm and
 the d at 5.88 ppm.*
@@ -88,12 +98,6 @@ the d at 5.88 ppm.*
 The About box shows the version of the shared module
 (`COUPLING_MODULE_VERSION`), so the two plugins can be checked for being in
 step.
-
-## Requirements
-
-* MoleditPy 4.x (provides PySide6, RDKit, PyVista)
-* `matplotlib`
-* Internet access to `nova.chem.colostate.edu`
 
 ## Credits and citation
 
@@ -107,10 +111,9 @@ its predictions, please cite:
 The web service is provided by its authors free of charge; this plugin is not
 affiliated with them. Please use it considerately.
 
-## Licence
+## License
 
-LGPL-3.0-or-later (see [LICENSE](LICENSE)).
-
-## Licensing scope
-
-First-party code in this migration is LGPL-3.0-or-later. See [LICENSE](LICENSE), [COPYING](COPYING) and [dependency/provenance terms](LICENSING.md). Third-party components and historical releases retain their own terms.
+The plugin's first-party code is licensed under **LGPL-3.0-or-later**.
+See [LICENSE](LICENSE), [COPYING](COPYING) and [LICENSING.md](LICENSING.md)
+for the license text and scope. Third-party components and historical releases
+retain their own terms.
